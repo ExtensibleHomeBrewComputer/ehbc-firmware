@@ -1,0 +1,10 @@
+#!/bin/sh
+
+EHBC_PATH=$(cd "$(dirname -- "$0")"; pwd)
+
+
+wget http://sun.hasenbraten.de/vasm/release/vasm.tar.gz
+
+tar -xzf vasm.tar.gz
+
+
