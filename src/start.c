@@ -11,8 +11,11 @@
  */
 
 #include "stop.h"
+#include "types.h"
 
 void __attribute__((noreturn)) _start() {
+    volatile uint32_t* test_var = (volatile uint32_t*)0x00010000;
+    *test_var = 0xFFFFFFFF;
     while (1) {
         _stop_cpu(0);
     }

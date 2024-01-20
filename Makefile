@@ -3,7 +3,7 @@
 ################################################################################
 # CC Configurations
 CC=m68k-unknown-elf-gcc
-CFLAGS=-march=68030 -m68881 -O0 -std=c99
+CFLAGS=-march=68030 -m68881 -O0 -std=c99 -ffreestanding
 
 # AS Configurations
 AS=vasmm68k_mot
@@ -37,6 +37,8 @@ MKDIR=mkdir
 DD=dd
 CHMOD=chmod
 M4=m4
+GDB=m68k-unknown-elf-gdb
+QEMU=../ehbc-qemu/build/qemu-system-m68k
 
 ################################################################################
 # Directory / File Structure
@@ -76,14 +78,23 @@ BINSPLIT=$(TOOLBINDIR)/binsplit
 # Makefile Commands
 ################################################################################
 # Subcommands
-all: build $(BIN) $(HEX) $(SBIN) bininfo
+all: build $(BIN) $(HEX) $(SBIN) $(BUILDDIR)/objdump.out
  
 clean:
 	rm -rf $(BUILDDIR)
 
 build: prepdir $(TARGET)
 
-prepdir: $(BUILDDIR)
+run: $(BIN)
+	$(QEMU) \
+		-M ehbc -cpu m68030 -m 128M -S -s \
+		-monitor stdio -display cocoa -g 640x480 \
+		-bios $<
+
+debug:
+	${GDB} -ex "target remote :1234" -ex "layout asm"
+
+prepdir:
 	$(MKDIR) -p $(BUILDDIR)
 	$(MKDIR) -p $(BUILDDIR)/obj
 	$(MKDIR) -p $(BUILDDIR)/obj/$(SRCDIR)
@@ -91,8 +102,8 @@ prepdir: $(BUILDDIR)
 	$(MKDIR) -p $(BUILDDIR)/obj/$(RSRCDIR)
 	$(MKDIR) -p $(BUILDDIR)/tools
 
-bininfo: build
-	$(OBJDUMP) -s -S -x -r $(TARGET) > $(BUILDDIR)/objdump.out
+ $(BUILDDIR)/objdump.out: build
+	$(OBJDUMP) -s -S -x -r $(TARGET) > $@
 
 # Tools
 $(TOOLBINDIR)/%: $(TOOLSDIR)/%
@@ -121,7 +132,7 @@ $(HEX): $(TARGET)
 
 # Temporary Targets
 $(OBJDIR)/$(SRCDIR)/%.c.o: $(SRCDIR)/%.c
-	$(CC) $(CCFLAGS) -I$(INCDIR) -c -o $@ $<
+	$(CC) $(CFLAGS) -I$(INCDIR) -c -o $@ $<
 
 $(OBJDIR)/$(SRCDIR)/%.asm.o: $(SRCDIR)/%.asm
 	$(AS) $(ASFLAGS) -I$(INCDIR) -Felf -o $@ $<
