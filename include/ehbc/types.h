@@ -2,7 +2,6 @@
  * @file types.h
  * @author Minsu Kwon (kms1212g@gmail.com)
  * @brief Type definitions
- * @version r0
  * @date 2024-01-17
  * 
  * @copyright Copyright (c) 2024 Minsu Kwon (kms1212g@gmail.com)
@@ -14,20 +13,16 @@
 #define _EHBC_TYPES_H__
 
 #include <stdint.h>
+#include <stddef.h>
 
-typedef uint8_t     BYTE;
-
-typedef uint16_t    WORD;
-
-typedef uint32_t    DWORD;
-typedef uint32_t    LONG;
-
-typedef uint64_t    QWORD;
+typedef int         error_t;
+typedef uint32_t    size32_t;
+typedef uint16_t    size16_t;
+typedef int32_t     ssize32_t;
+typedef int16_t     ssize16_t;
 
 typedef void        (*vfunc_t)();
-
 typedef void*       ptr_t;
-
 #define PTR(ptr)    (ptr_t)(ptr)
 
 #endif  // _EHBC_TYPES_H__

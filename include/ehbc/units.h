@@ -2,7 +2,6 @@
  * @file units.h
  * @author Minsu Kwon (kms1212g@gmail.com)
  * @brief SI prefix (+ unit) definitions
- * @version r0
  * @date 2024-01-17
  * 
  * @copyright Copyright (c) 2024 Minsu Kwon (kms1212g@gmail.com)
@@ -13,14 +12,14 @@
 #ifndef _EHBC_UNITS_H__
 #define _EHBC_UNITS_H__
 
-#include "types.h"
+#include <ehbc/types.h>
 
-#define Ki 1024
-#define Mi (1024 * Ki)
+#define ki 1024
+#define Mi (1024 * ki)
 #define Gi (1024 * Mi)
 
-#define KiB (Ki * sizeof(BYTE))
-#define MiB (Mi * sizeof(BYTE))
-#define GiB (Gi * sizeof(BYTE))
+#define kiB (ki * sizeof(uint8_t))
+#define MiB (Mi * sizeof(uint8_t))
+#define GiB (Gi * sizeof(uint8_t))
 
 #endif  // _EHBC_UNITS_H__

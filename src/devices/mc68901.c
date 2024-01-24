@@ -1,3 +1,5 @@
+#include <ehbc/types.h>
+
 /*
 
 #include "devices/mc68901.h"

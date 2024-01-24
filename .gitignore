@@ -84,3 +84,5 @@ dkms.conf
 build
 vars.make
 vars.sh
+.gdb_history
+.vscode
