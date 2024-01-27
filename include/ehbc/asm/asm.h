@@ -12,7 +12,7 @@
 #ifndef _EHBC_ASM_H__
 #define _EHBC_ASM_H__
 
-#include "types.h"
+#include <ehbc/types.h>
 
 void cpu_reset(void);
 void cpu_set_interrupt_mask(const uint8_t mask);

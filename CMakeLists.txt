@@ -25,6 +25,7 @@ endif()
 add_config_dependency("arch")
 add_config_dependency("src")
 add_config_dependency("hw")
+add_config_dependency("fs")
 
 add_executable(firmware.elf ${CONFIGURED_SOURCES})
 add_custom_target(firmware.bin ALL

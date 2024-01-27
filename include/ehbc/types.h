@@ -16,10 +16,19 @@
 #include <stddef.h>
 
 typedef int         error_t;
+
 typedef uint32_t    size32_t;
 typedef uint16_t    size16_t;
 typedef int32_t     ssize32_t;
 typedef int16_t     ssize16_t;
+
+typedef volatile uint8_t hwreg8_t;
+typedef volatile uint16_t hwreg16_t;
+typedef volatile uint32_t hwreg32_t;
+typedef volatile uint64_t hwreg64_t;
+
+typedef uint32_t    addr32_t;
+typedef uint64_t    addr64_t;
 
 typedef void        (*vfunc_t)();
 typedef void*       ptr_t;

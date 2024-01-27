@@ -5,11 +5,13 @@ QEMU=../ehbc-qemu/build/qemu-system-m68k
 run: build/firmware.bin
 	$(QEMU) \
 		-M ehbc -cpu m68030 -m 128M -S -s \
-		-monitor stdio -hda disk.qcow2 \
-		--trace "ide_*" \
+		-monitor stdio -hda disk.img \
+		--trace "ide_bus_*" \
+		--trace "ide_ioport_*" \
 		--trace "serial_*" \
 		--trace "pckbd_*" \
 		--trace "cpu_*" \
+		--trace "vga_*" \
 		-bios $<
 
 debug: build/firmware.elf

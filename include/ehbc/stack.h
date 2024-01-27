@@ -8,12 +8,12 @@
 #define STACK_BOTTOM        HEAP_TOP;
 
 /* Top address of initial CPU stack */
-#define STACK_INITIAL_TOP   1 * MiB + 256 * kiB
+#define STACK_INITIAL_TOP   8 * MiB
 
-static inline size32_t get_stack_free_space()
+static inline ssize32_t get_stack_free_space()
 {
     int v;
-    return (size32_t)(&v) - (size32_t)STACK_BOTTOM;
+    return (ssize32_t)(&v) - (ssize32_t)STACK_BOTTOM;
 }
 
 #endif  // _EHBC_STACK_H__

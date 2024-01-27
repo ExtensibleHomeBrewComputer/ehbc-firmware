@@ -1,4 +1,4 @@
-#include <ehbc/format.h>
+#include <ehbc/printf.h>
 
 #include <stdarg.h>
 
@@ -44,8 +44,43 @@ static const char hex_char_table_lower[] = "0123456789abcdef";
         throw_error();              \
     }
 
+static size32_t u32toa(uint32_t value, char* buf, size32_t len, char radix)
+{
+    size32_t width = 0;
+    switch (radix) {
+        case 'o':
+            do {
+                buf[width++] = hex_char_table_upper[value & 0x07];
+                value >>= 3;
+            } while (width < len && value != 0);
+            break;
+        case 'd':
+            do {
+                buf[width++] = (value % 10) + '0';
+                value /= 10;
+            } while (width < len && value != 0);
+            break;
+        case 'x':
+            do {
+                buf[width++] = hex_char_table_lower[value & 0xF];
+                value >>= 4;
+            } while (width < len && value != 0);
+            break;
+        case 'X':
+            do {
+                buf[width++] = hex_char_table_upper[value & 0xF];
+                value >>= 4;
+            } while (width < len && value != 0);
+            break;
+        default:
+            buf[width++] = '0';
+            break;
+    }
+    return width;
+}
+
 /* TODO: finish implementation */
-int vformat(char* buf, size32_t len, const char* fmt, va_list ap)
+int vsnprintf(char* buf, size32_t len, const char* fmt, va_list ap)
 {
     int result = 0;
     uint8_t state = 0;
@@ -53,6 +88,7 @@ int vformat(char* buf, size32_t len, const char* fmt, va_list ap)
     int width = 0;
     char length = 0;
     int bytes_written = 0;
+    char integer_output = '\0';
 
     for (; *fmt != 0; fmt++) {
         if (state == FLAGS_REQUIRED) {
@@ -97,104 +133,56 @@ int vformat(char* buf, size32_t len, const char* fmt, va_list ap)
             switch (*fmt) {
                 case 'h':
                     if (*(fmt + 1) == 'h') {
-                        fmt++;
                         length = LENGTH_CHAR;
+                        fmt += 2;
                     } else {
                         length = LENGTH_SHORT;
+                        fmt++;
                     }
                     break;
                 case 'l':
                     if (*(fmt + 1) == 'l') {
-                        fmt++;
                         length = LENGTH_LONGLONG;
+                        fmt += 2;
                     } else {
                         length = LENGTH_LONG;
+                        fmt++;
                     }
                     break;
                 case 'j':
                     length = LENGTH_INTMAX;
+                    fmt++;
                     break;
                 case 'z':
                     length = LENGTH_SIZE;
+                    fmt++;
                     break;
                 case 't':
                     length = LENGTH_PTRDIFF;
+                    fmt++;
                     break;
                 case 'L':
                     length = LENGTH_LONGDOUBLE;
+                    fmt++;
                     break;
                 default:
                     length = LENGTH_INT;
-                    state--;
                     break;
             }
+            state--;
         }
 
         if (state == SPECIFIER_REQUIRED) {
             switch (*fmt) {
-                case 'd':
                 case 'i':
+                    integer_output = 'd';
                     break;
                 case 'u':
-                    break;
+                case 'd':
                 case 'o':
-                    break;
-                case 'x': {
-                    intmax_t value;
-                    switch (length) {
-                        case LENGTH_CHAR:
-                        case LENGTH_SHORT:
-                        case LENGTH_INT:
-                            value = va_arg(ap, int);
-                            break;
-                        case LENGTH_LONG:
-                            value = va_arg(ap, long);
-                            break;
-                        case LENGTH_LONGLONG:
-                            value = va_arg(ap, long long);
-                            break;
-                        case LENGTH_INTMAX:
-                            value = va_arg(ap, intmax_t);
-                            break;
-                        case LENGTH_SIZE:
-                            value = va_arg(ap, size_t);
-                            break;
-                        case LENGTH_PTRDIFF:
-                            value = va_arg(ap, int);
-                            break;
-                        default:
-                            throw_error();
-                    }
-                    char cvt_buf_rev[32];
-                    char padding_char = '\0';
-                    for (int i = 0; i < sizeof(cvt_buf_rev); i++) {
-                        cvt_buf_rev[i] = value & 0xF;
-                        value >>= 4;
-                    }
-                    if (flags & FLAG_INSERT_PREFIX) {
-                        copy_char('0', buf++);
-                        copy_char('x', buf++);
-                    }
-                    for (int i = sizeof(cvt_buf_rev) - 1; i >= 0; i--) {
-                        if (i == width - 1) {
-                            if (flags & FLAG_ZERO_PADDING) {
-                                padding_char = '0';
-                            } else {
-                                padding_char = ' ';
-                            }
-                        }
-
-                        if (cvt_buf_rev[i] == 0) {
-                            if (padding_char != '\0') {
-                                copy_char(padding_char, buf++);
-                            }
-                        } else {
-                            copy_char(hex_char_table_lower[(int)cvt_buf_rev[i]], buf++);
-                        }
-                    }
-                    break;
-                }
-                case 'X':
+                case 'x':
+                case 'X': 
+                    integer_output = *fmt;
                     break;
                 case 'f':
                     break;
@@ -224,7 +212,7 @@ int vformat(char* buf, size32_t len, const char* fmt, va_list ap)
                         if (--width != 0) {
                             copy_char(*str, buf++);
                         } else {
-                            throw_error();
+                            break;
                         }
                     }
                     break;
@@ -234,15 +222,69 @@ int vformat(char* buf, size32_t len, const char* fmt, va_list ap)
                 case 'n':
                     break;
                 default:
-                    bytes_written = -1;
-                    goto finish;
+                    throw_error();
             }
+
+            if (integer_output) {
+                uint32_t value;
+                switch (length) {
+                    case LENGTH_CHAR:
+                    case LENGTH_SHORT:
+                    case LENGTH_INT:
+                        value = va_arg(ap, int);
+                        break;
+                    case LENGTH_LONG:
+                        value = va_arg(ap, long);
+                        break;
+                    case LENGTH_LONGLONG:
+                    case LENGTH_INTMAX:
+                    case LENGTH_SIZE:
+                    case LENGTH_PTRDIFF:
+                    default:
+                        throw_error();
+                }
+                switch (integer_output) {
+                    case 'd':
+                        if ((int32_t)value < 0) {
+                            value = -(int32_t)value;
+                            copy_char('-', buf++);
+                        } else if (flags & FLAG_FORCE_SIGN) {
+                            copy_char('+', buf++);
+                        } else if (flags & FLAG_PAD_SIGN) {
+                            copy_char(' ', buf++);
+                        }
+                        break;
+                    case 'u':
+                        integer_output = 'd';
+                        break;
+                }
+                char cvt_buf[10];
+                size32_t cvt_width = u32toa(value, cvt_buf, sizeof(cvt_buf), integer_output);
+                if (width == 0) {
+                    width = cvt_width;
+                }
+                for (; width > 0; width--) {
+                    if (width > cvt_width) {
+                        if (flags & FLAG_ZERO_PADDING) {
+                            copy_char('0', buf++);
+                        } else {
+                            copy_char(' ', buf++);
+                        }
+                    } else {
+                        char ch = cvt_buf[width - 1];
+                        copy_char(ch, buf++);
+                    }
+                }
+            }
+
             state = 0;
             flags = '\0';
             width = 0;
             length = 0;
+            integer_output = '\0';
             continue;
         }
+
 
         if (!state) {
             switch (*fmt) {
@@ -263,7 +305,6 @@ int vformat(char* buf, size32_t len, const char* fmt, va_list ap)
 finish:
     if (len-- > 0) {
         *buf = '\0';
-        bytes_written++;
     } else {
         bytes_written = -1;
     }

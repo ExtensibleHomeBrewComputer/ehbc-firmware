@@ -1,3 +1,6 @@
 add_source("main.c")
-add_source("format.c")
+add_source("vsnprintf.c")
 add_source("memory.c")
+add_source("class.c")
+add_source("iodev.c")
+add_source("utils.c")
