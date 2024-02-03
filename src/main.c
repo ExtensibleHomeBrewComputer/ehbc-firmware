@@ -17,6 +17,7 @@
 #include <ehbc/hw/escc.h>
 #include <ehbc/hw/ata.h>
 #include <ehbc/fs/fat.h>
+#include <ehbc/string.h>
 
 #define ESCC_CHA_CMD        ((uint8_t*)0xFF001201)
 #define ESCC_CHA_DATA       ((uint8_t*)0xFF001203)
@@ -27,62 +28,52 @@
 #define ATA0_MASTER_BASE    ((uint16_t*)0xFF001D00)
 #define ATA0_SLAVE_BASE     ((uint16_t*)0xFF001D00)
 
-#define ATA_REG_DATA        0
-#define ATA_REG_ERROR       1
-#define ATA_REG_FEATURES    1
-#define ATA_REG_SECT_COUNT  2
-#define ATA_REG_SECT_NUM    3
-#define ATA_REG_CYL_LOW     4
-#define ATA_REG_CYL_HIGH    5
-#define ATA_REG_DRV_HEAD    6
-#define ATA_REG_LBA_LOW     3
-#define ATA_REG_LBA_MID     4
-#define ATA_REG_LBA_HIGH    5
-#define ATA_REG_STATUS      7
-#define ATA_REG_COMMAND     7
-
-void hexdump(const void* p, size_t len);
-
-static inline int debug_poll_input(void)
-{
-    return *ESCC_CHA_CMD & 1;
-}
-
-static inline void ata_send_command(uint16_t* ata_mmio_base, uint8_t command)
-{
-    ata_mmio_base[ATA_REG_COMMAND] = byteswap16(command);
-}
 
 void main(void)
 {
-    class_t* escc = new_class(DeviceESCC);
-    methodof(DeviceESCC, initialize)(escc, ESCC_CHA_CMD, ESCC_CHA_DATA);
+    ESCC escc;
+    methodof(ESCC, construct)(&escc, ESCC_CHA_CMD, ESCC_CHA_DATA);
 
-    set_io_device(escc);
+    set_io_device(&escc, &ftableof(ESCC).impl(DeviceTrait));
     printf("\r\n");
 
-    class_t* ata = new_class(DeviceATA);
-    methodof(DeviceATA, initialize)(ata, ATA0_MASTER_BASE);
+    printf("%ld bytes used, %ld bytes free\r\n", get_used_heap_space() + get_used_stack_space(), get_free_stack_space());
+
+    ATADrive ata;
+    methodof(ATADrive, construct)(&ata, ATA0_MASTER_BASE);
+
+    printf("%ld bytes used, %ld bytes free\r\n", get_used_heap_space() + get_used_stack_space(), get_free_stack_space());
 
     printf("debug: Initialized debugging environment\r\n");
 
-    printf("sizeof(intmax_t) = %lu\r\n", sizeof(intmax_t));
-
+    printf("sizeof(char) = %lu\r\n", sizeof(char));
+    printf("sizeof(short) = %lu\r\n", sizeof(short));
+    printf("sizeof(int) = %lu\r\n", sizeof(int));
     printf("sizeof(long) = %lu\r\n", sizeof(long));
-
     printf("sizeof(long long) = %lu\r\n", sizeof(long long));
+    printf("sizeof(float) = %lu\r\n", sizeof(float));
+    printf("sizeof(double) = %lu\r\n", sizeof(double));
+    printf("sizeof(long double) = %lu\r\n", sizeof(long double));
+    printf("sizeof(intmax_t) = %lu\r\n", sizeof(intmax_t));
+    printf("sizeof(void*) = %lu\r\n", sizeof(void*));
 
-    printf("%ld bytes free\r\n", get_stack_free_space());
+    volatile long double fvar = 1.0f;
+    fvar += 2.0f;
 
-    class_t* fatfs = new_class(FileSystemFAT);
-    methodof(FileSystemFAT, initialize_from_blkdev)(fatfs, ata);
+    printf("%ld bytes used, %ld bytes free\r\n", get_used_heap_space() + get_used_stack_space(), get_free_stack_space());
 
-    printf("%ld bytes free\r\n", get_stack_free_space());
+    FATFileSystem fatfs;
+    methodof(FATFileSystem, construct)(&fatfs, &ata, &ftableof(ATADrive).impl(DeviceTrait), 0);
 
-    printf("%s\r\n", methodof(FileSystemFAT, get_filesystem_name)(fatfs));
+    printf("%ld bytes used, %ld bytes free\r\n", get_used_heap_space() + get_used_stack_space(), get_free_stack_space());
 
-    methodof(FileSystemFAT, list_directory)(fatfs, "", NULL, 0);
+    printf("%s\r\n", methodof(FATFileSystem, get_filesystem_name)(&fatfs));
 
+    dir_t rootdir;
+    methodof(FATFileSystem, open_directory)(&fatfs, NULL, &rootdir, FS_ROOT_DIR);
+
+    dir_t subdir1;
+    methodof(FATFileSystem, open_directory)(&fatfs, &rootdir, &subdir1, "ASDF");
 
     /*
     printf("i8042 status: %02x\r\n", *I8042_CMD);
@@ -103,6 +94,9 @@ void main(void)
     printf("i8042 command register: %02x\r\n", *I8042_DATA);
     */
 
+    char escc_buffer[16];
+    char input_buffer[512];
+    int ibuf_cur = 0;
     while (1) {
         /*
         uint8_t i8042_status = *I8042_CMD;
@@ -110,20 +104,55 @@ void main(void)
             printf("i8042 read: %02x\r\n", *I8042_DATA);
         }
         */
-        if (debug_poll_input()) {  // character available
-            char input_char = *ESCC_CHA_DATA;
-            switch (input_char) {
+        int read_count = methodof(ESCC, read)(&escc, escc_buffer, sizeof(escc_buffer), 0);
+        for (int i = 0; i < read_count; i++) {
+            switch (escc_buffer[i]) {
                 case '\r':
+                case '\n':
                     printf("\r\n");
+                    if (strncmp(input_buffer, "dir", 4) == 0) {
+                        const fileinfo_t* fip = NULL;
+                        do {
+                            methodof(FATFileSystem, list_directory)(&fatfs, &rootdir, &fip);
+                            if (fip != NULL) {
+                                printf("%s\r\n", fip->name);
+                            }
+                        } while (fip != NULL);
+                    } else if (strncmp(input_buffer, "dir2", 5) == 0) {
+                        const fileinfo_t* fip = NULL;
+                        do {
+                            methodof(FATFileSystem, list_directory)(&fatfs, &subdir1, &fip);
+                            if (fip != NULL) {
+                                printf("%s\r\n", fip->name);
+                            }
+                        } while (fip != NULL);
+                    } else if (strncmp(input_buffer, "find ", 5) == 0) {
+                        const fileinfo_t* fip = NULL;
+                        methodof(FATFileSystem, match_name)(&fatfs, &rootdir, input_buffer + 5, &fip);
+                        if (fip != NULL) {
+                            printf("File found: %s\r\n", fip->name);
+                        } else {
+                            printf("File not found: %s\r\n", input_buffer + 5);
+                        }
+                    }
+                    ibuf_cur = 0;
+                    break;
+                case '\x7F':
+                    if (ibuf_cur > 0) {
+                        ibuf_cur--;
+                        input_buffer[ibuf_cur] = 0;
+                        const char bksp_seq[] = "\b\0\b";
+                        methodof(ESCC, write)(&escc, bksp_seq, 3, 0);
+                    }
                     break;
                 default:
-                    printf("%c", input_char);
+                    printf("%c", escc_buffer[i]);
+                    input_buffer[ibuf_cur++] = escc_buffer[i];
+                    input_buffer[ibuf_cur] = 0;
                     break;
             }
         }
     }
-
-    delete_class(fatfs);
-    delete_class(ata);
-    delete_class(escc);
+    methodof(FATFileSystem, close_directory)(&fatfs, &subdir1);
+    methodof(FATFileSystem, close_directory)(&fatfs, &rootdir);
 }

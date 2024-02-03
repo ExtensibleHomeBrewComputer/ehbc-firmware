@@ -14,4 +14,9 @@ extern void* __heap_top_ptr;
 void* mem_alloc(size32_t size);
 void mem_free(void* ptr);
 
+static inline ssize32_t get_used_heap_space(void)
+{
+    return (ssize32_t)HEAP_TOP - (ssize32_t)HEAP_BOTTOM;
+}
+
 #endif  // _EHBC_MEMORY_H__

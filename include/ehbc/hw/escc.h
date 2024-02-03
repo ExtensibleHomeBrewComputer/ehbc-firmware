@@ -2,15 +2,27 @@
 #define _EHBC_HW_ESCC_H__
 
 #include <ehbc/types.h>
-#include <ehbc/class.h>
+#include <ehbc/struct.h>
 #include <ehbc/hw/device.h>
 
-extern const classdef_t _device_escc_def;
+typedef struct {
+    hwreg8_t* cmd_register;
+    hwreg8_t* data_register;
+} ESCC;
 
-#define DeviceESCC (&_device_escc_def)
+int methodof(ESCC, construct)(void* self, hwreg8_t* cmd_register, hwreg8_t* data_register);
+ssize32_t methodof(ESCC, read)(void* self, void* buf, size32_t count, size32_t offset);
+ssize32_t methodof(ESCC, write)(void* self, const void* buf, size32_t count, size32_t offset);
 
-void methodof(DeviceESCC, initialize)(class_t* self, hwreg8_t* cmd_register, hwreg8_t* data_register);
-ssize32_t methodof(DeviceESCC, read)(class_t* self, void* buf, size32_t count, size32_t offset);
-ssize32_t methodof(DeviceESCC, write)(class_t* self, const void* buf, size32_t count, size32_t offset);
+static const struct {
+    int (*construct)(void* self, hwreg8_t* cmd_register, hwreg8_t* data_register);
+    DeviceTrait impl(DeviceTrait);
+} ftableof(ESCC) = {
+    .construct = methodof(ESCC, construct),
+    .impl(DeviceTrait) = {
+        .read = methodof(ESCC, read),
+        .write = methodof(ESCC, write),
+    }
+};
 
 #endif  // _EHBC_HW_ESCC_H__

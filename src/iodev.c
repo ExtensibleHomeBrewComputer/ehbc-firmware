@@ -1,19 +1,28 @@
 #include <ehbc/iodev.h>
 #include <ehbc/hw/device.h>
 
-static class_t* iodev;
+static void* iodev = NULL;
+static const DeviceTrait* iodev_trait = NULL;
 
-int set_io_device(class_t* device)
+int set_io_device(void* dev, const DeviceTrait* dev_trait)
 {
-    if (device == NULL || !is_base(Device, device->def)) {
+    if (dev == NULL || dev_trait == NULL) {
         return -1;
     }
 
-    iodev = device;
+    iodev = dev;
+    iodev_trait = dev_trait;
     return 0;
 }
 
-class_t* get_io_device(void)
+int get_io_device(void** dev, const DeviceTrait** dev_trait)
 {
-    return iodev;
+    if (iodev == NULL || iodev_trait == NULL) {
+        return -1;
+    }
+
+    *dev = iodev;
+    *dev_trait = iodev_trait;
+
+    return 0;
 }

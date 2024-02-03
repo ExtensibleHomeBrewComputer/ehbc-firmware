@@ -2,13 +2,10 @@
 #define _EHBC_FS_FAT_FAT_INTERNAL_H__
 
 #include <ehbc/types.h>
+#include <ehbc/fs/fat.h>
 
 #define FAT_SECTOR_SIZE         512
 
-#define FAT_SFN_NAME            8
-#define FAT_SFN_EXTENSION       3
-#define FAT_SFN_LENGTH          (FAT_SFN_NAME + FAT_SFN_EXTENSION)
-#define FAT_LFN_LENGTH          256
 #define FAT_LFN_END_MASK        0x40
 
 #define FAT12_MAX_CLUSTER       0xFF4

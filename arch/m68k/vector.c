@@ -25,7 +25,7 @@ void default_vector_handler(const struct stack_frame0* info)
 
 __attribute__((section(".vector")))
 const struct vector default_vector = {
-    .initial_sp                     = PTR(STACK_INITIAL_TOP),
+    .initial_sp                     = NULL,
     .initial_pc                     = _start,
 
     .bus_error                      = default_vector_handler,

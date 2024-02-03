@@ -1,7 +1,7 @@
 .org 0
 
 #include <ehbc/section.h>
-
+#include <ehbc/stack.h>
 
 .global         main
 .global          _start
@@ -18,6 +18,9 @@ _start:
     move.l      %a1@+,%a0@+
     bra         0b
 .skip_data:
+
+    /* set stack pointer */
+    movea.l     #__stack_top,%a7
 
     /* run constructors */
     movea.l     #__ctors_start,%a2

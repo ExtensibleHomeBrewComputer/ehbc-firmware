@@ -14,6 +14,8 @@ MEMORY {
 }
 
 SECTIONS {
+    __stack_size = 16K;
+
     . = 0x00000000;
     .vector : {
         . = ALIGN(4);
@@ -73,6 +75,7 @@ SECTIONS {
     } >RAM
 
     __heap_bottom = ORIGIN(RAM) + SIZEOF(.data) + SIZEOF(.bss);
+    __stack_top = ORIGIN(RAM) + __stack_size;
 
     .mmio(NOLOAD) : {
         __mmio_start = .;

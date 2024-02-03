@@ -80,7 +80,7 @@ static size32_t u32toa(uint32_t value, char* buf, size32_t len, char radix)
 }
 
 /* TODO: finish implementation */
-int vsnprintf(char* buf, size32_t len, const char* fmt, va_list ap)
+int vsnprintf(char* buf, size32_t len, const char* restrict fmt, va_list ap)
 {
     int result = 0;
     uint8_t state = 0;
@@ -310,4 +310,19 @@ finish:
     }
 
     return bytes_written;
+}
+
+int printf(const char* restrict fmt, ...)
+{
+    static char printf_buf[1 * kiB];
+    va_list ap;
+    va_start(ap, fmt);
+    int bytes = vsnprintf(printf_buf, sizeof(printf_buf), fmt, ap);
+    va_end(ap);
+    void* dev;
+    const DeviceTrait* dev_trait;
+    if (get_io_device(&dev, &dev_trait)) {
+        return -1;
+    }
+    return dev_trait->write(dev, printf_buf, bytes, 0);
 }
