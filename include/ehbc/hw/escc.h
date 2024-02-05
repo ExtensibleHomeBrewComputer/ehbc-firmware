@@ -10,18 +10,18 @@ typedef struct {
     hwreg8_t* data_register;
 } ESCC;
 
-int methodof(ESCC, construct)(void* self, hwreg8_t* cmd_register, hwreg8_t* data_register);
-ssize32_t methodof(ESCC, read)(void* self, void* buf, size32_t count, size32_t offset);
-ssize32_t methodof(ESCC, write)(void* self, const void* buf, size32_t count, size32_t offset);
+int memberof(ESCC, construct)(void* self, hwreg8_t* cmd_register, hwreg8_t* data_register);
+ssize32_t memberof(ESCC, read)(void* self, void* buf, size32_t count, size32_t offset);
+ssize32_t memberof(ESCC, write)(void* self, const void* buf, size32_t count, size32_t offset);
 
 static const struct {
     int (*construct)(void* self, hwreg8_t* cmd_register, hwreg8_t* data_register);
     DeviceTrait impl(DeviceTrait);
 } ftableof(ESCC) = {
-    .construct = methodof(ESCC, construct),
+    .construct = memberof(ESCC, construct),
     .impl(DeviceTrait) = {
-        .read = methodof(ESCC, read),
-        .write = methodof(ESCC, write),
+        .read = memberof(ESCC, read),
+        .write = memberof(ESCC, write),
     }
 };
 

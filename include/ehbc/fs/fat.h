@@ -9,8 +9,8 @@
 #define FAT_SFN_EXTENSION   3
 #define FAT_SFN_LENGTH      (FAT_SFN_NAME + FAT_SFN_EXTENSION)
 #define FAT_LFN_LENGTH      255
-#define FAT_SFN_BUFLEN      FAT_SFN_LENGTH + 2  // "filename" + "." + "ext" + "\0"
-#define FAT_LFN_BUFLEN      FAT_LFN_LENGTH + 1  // "longfilename" + "\0"
+#define FAT_SFN_BUFLEN      FAT_SFN_LENGTH + 2  // "filename" + '.' + "ext" + '\0'
+#define FAT_LFN_BUFLEN      FAT_LFN_LENGTH + 1  // "longfilename" + '\0'
 
 
 typedef struct {
@@ -44,69 +44,72 @@ typedef struct {
     uint16_t root_sector_count;
 } FATFileSystem;
 
-int methodof(FATFileSystem, detect)(void* bdev, const DeviceTrait* bdev_trait, uint32_t lba);
+int memberof(FATFileSystem, detect)(void* bdev, const DeviceTrait* bdev_trait, uint32_t lba);
 
-int methodof(FATFileSystem, construct)(void* self, void* bdev, const DeviceTrait* bdev_trait, uint32_t lba);
-int methodof(FATFileSystem, destruct)(void* self);
+int memberof(FATFileSystem, construct)(void* self, void* bdev, const DeviceTrait* bdev_trait, uint32_t lba);
+int memberof(FATFileSystem, destruct)(void* self);
 
-const char* methodof(FATFileSystem, get_filesystem_name)(void* self);
+const char* memberof(FATFileSystem, get_filesystem_name)(void* self);
 
-int methodof(FATFileSystem, match_name)(void* self, dir_t* path, const char* name, const fileinfo_t** finfo);
+int memberof(FATFileSystem, match_name)(void* self, dir_t* path, const char* name, const fileinfo_t** finfo);
 
-int methodof(FATFileSystem, create_directory)(void* self, const char* path);
-int methodof(FATFileSystem, remove_directory)(void* self, const char* path);
-int methodof(FATFileSystem, open_directory)(void* self, dir_t* path, dir_t* dir, const char* name);
-int methodof(FATFileSystem, close_directory)(void* self, dir_t* dir);
-int methodof(FATFileSystem, list_directory)(void* self, dir_t* dir, const fileinfo_t** finfo);
+int memberof(FATFileSystem, create_directory)(void* self, const char* path);
+int memberof(FATFileSystem, remove_directory)(void* self, const char* path);
+int memberof(FATFileSystem, open_directory)(void* self, dir_t* path, dir_t* dir, const char* name);
+int memberof(FATFileSystem, close_directory)(void* self, dir_t* dir);
+int memberof(FATFileSystem, list_directory)(void* self, dir_t* dir, const fileinfo_t** finfo);
 
-int methodof(FATFileSystem, get_created_time)(const fileinfo_t* finfo, timestamp_t* timestamp);
-int methodof(FATFileSystem, get_modified_time)(const fileinfo_t* finfo, timestamp_t* timestamp);
-int methodof(FATFileSystem, get_accessed_time)(const fileinfo_t* finfo, timestamp_t* timestamp);
+int memberof(FATFileSystem, get_created_time)(const fileinfo_t* finfo, timestamp_t* timestamp);
+int memberof(FATFileSystem, get_modified_time)(const fileinfo_t* finfo, timestamp_t* timestamp);
+int memberof(FATFileSystem, get_accessed_time)(const fileinfo_t* finfo, timestamp_t* timestamp);
 
-int methodof(FATFileSystem, create_file)(void* self, dir_t* path, const char* name);
-int methodof(FATFileSystem, remove_file)(void* self, dir_t* path, const char* name);
-int methodof(FATFileSystem, open_file)(void* self, dir_t* path, file_t* file, const char* name, const char* mode);
-int methodof(FATFileSystem, close_file)(void* self, file_t* file);
-int methodof(FATFileSystem, read_file)(void* self, file_t* file);
-int methodof(FATFileSystem, write_file)(void* self, file_t* file);
-int methodof(FATFileSystem, seek_file)(void* self, file_t* file);
-int methodof(FATFileSystem, test_file)(void* self, dir_t* dir, const char* name);
+int memberof(FATFileSystem, create_file)(void* self, dir_t* path, const char* name);
+int memberof(FATFileSystem, remove_file)(void* self, dir_t* path, const char* name);
+int memberof(FATFileSystem, open_file)(void* self, dir_t* path, file_t* file, const char* name, const char* mode);
+int memberof(FATFileSystem, close_file)(void* self, file_t* file);
+size32_t memberof(FATFileSystem, read_file)(void* self, file_t* file, void* buf, size32_t size, size32_t count);
+size32_t memberof(FATFileSystem, write_file)(void* self, file_t* file, const void* buf, size32_t size, size32_t count);
+int memberof(FATFileSystem, seek_file)(void* self, file_t* file, ssize32_t offset, int origin);
+ssize32_t memberof(FATFileSystem, tell_file)(void* self, file_t* file);
+int memberof(FATFileSystem, is_eof)(void* self, file_t* file);
+int memberof(FATFileSystem, test_file)(void* self, dir_t* dir, const char* name);
 
-int methodof(FATFileSystem, move)(void* self, dir_t* origdir, const char* origname, dir_t* tgtdir, const char* tgtname);
-int methodof(FATFileSystem, copy)(void* self, dir_t* origdir, const char* origname, dir_t* tgtdir, const char* tgtname);
+int memberof(FATFileSystem, move)(void* self, dir_t* origdir, const char* origname, dir_t* tgtdir, const char* tgtname);
+int memberof(FATFileSystem, copy)(void* self, dir_t* origdir, const char* origname, dir_t* tgtdir, const char* tgtname);
 
 static const struct {
     FileSystemTrait impl(FileSystemTrait);
 } ftableof(FATFileSystem) = {
     .impl(FileSystemTrait) = {
-        .detect = methodof(FATFileSystem, detect),
+        .detect = memberof(FATFileSystem, detect),
 
-        .construct = methodof(FATFileSystem, construct),
-        .destruct = methodof(FATFileSystem, destruct),
+        .construct = memberof(FATFileSystem, construct),
+        .destruct = memberof(FATFileSystem, destruct),
 
-        .get_filesystem_name = methodof(FATFileSystem, get_filesystem_name),
+        .get_filesystem_name = memberof(FATFileSystem, get_filesystem_name),
 
-        .create_directory = methodof(FATFileSystem, create_directory),
-        .remove_directory = methodof(FATFileSystem, remove_directory),
-        .open_directory = methodof(FATFileSystem, open_directory),
-        .close_directory = methodof(FATFileSystem, close_directory),
-        .list_directory = methodof(FATFileSystem, list_directory),
+        .create_directory = memberof(FATFileSystem, create_directory),
+        .remove_directory = memberof(FATFileSystem, remove_directory),
+        .open_directory = memberof(FATFileSystem, open_directory),
+        .close_directory = memberof(FATFileSystem, close_directory),
+        .list_directory = memberof(FATFileSystem, list_directory),
 
-        .get_created_time = methodof(FATFileSystem, get_created_time),
-        .get_modified_time = methodof(FATFileSystem, get_modified_time),
-        .get_accessed_time = methodof(FATFileSystem, get_accessed_time),
+        .get_created_time = memberof(FATFileSystem, get_created_time),
+        .get_modified_time = memberof(FATFileSystem, get_modified_time),
+        .get_accessed_time = memberof(FATFileSystem, get_accessed_time),
 
-        .create_file = methodof(FATFileSystem, create_file),
-        .remove_file = methodof(FATFileSystem, remove_file),
-        .open_file = methodof(FATFileSystem, open_file),
-        .close_file = methodof(FATFileSystem, close_file),
-        .read_file = methodof(FATFileSystem, read_file),
-        .write_file = methodof(FATFileSystem, write_file),
-        .seek_file = methodof(FATFileSystem, seek_file),
-        .test_file = methodof(FATFileSystem, test_file),
+        .create_file = memberof(FATFileSystem, create_file),
+        .remove_file = memberof(FATFileSystem, remove_file),
+        .open_file = memberof(FATFileSystem, open_file),
+        .close_file = memberof(FATFileSystem, close_file),
+        .read_file = memberof(FATFileSystem, read_file),
+        .write_file = memberof(FATFileSystem, write_file),
+        .seek_file = memberof(FATFileSystem, seek_file),
+        .is_eof = memberof(FATFileSystem, is_eof),
+        .test_file = memberof(FATFileSystem, test_file),
 
-        .move = methodof(FATFileSystem, move),
-        .copy = methodof(FATFileSystem, copy),
+        .move = memberof(FATFileSystem, move),
+        .copy = memberof(FATFileSystem, copy),
     }
 };
 

@@ -1,7 +1,7 @@
 #ifndef _EHBC_ELF_H__
 #define _EHBC_ELF_H__
 
-#include <ehbc/types.h>
+#include <ehbc/fs/filesystem.h>
 
 #define EI_NIDENT 16
 
@@ -115,62 +115,89 @@
 #define SHF_MASKOS              0x0FF00000
 #define SHF_MASKPROC            0xF0000000
 
+
 typedef uint32_t elf32_addr_t;
 typedef uint32_t elf32_offset_t;
 
-struct elf32_header {
-    uint8_t         ident[ELF_IDENT_LEN];
-    uint16_t        type;
-    uint16_t        machine;
-    uint32_t        version;
-    elf32_addr_t    entry;
-    elf32_offset_t  phoff;
-    elf32_offset_t  shoff;
-    uint32_t        flags;
-    uint16_t        ehsize;
-    uint16_t        phentsize;
-    uint16_t        phnum;
-    uint16_t        shentsize;
-    uint16_t        shnum;
-    uint16_t        shstrndx;
-};
+typedef struct {
+    uint8_t     ident[EI_NIDENT];
+    uint16_t    type;
+    uint16_t    machine;
+    uint32_t    version;
+    uint32_t    entry;
+    uint32_t    phoff;
+    uint32_t    shoff;
+    uint32_t    flags;
+    uint16_t    ehsize;
+    uint16_t    phentsize;
+    uint16_t    phnum;
+    uint16_t    shentsize;
+    uint16_t    shnum;
+    uint16_t    shstrndx;
+} memberof(ELFObject, header32);
 
-struct elf32_phdr {
-    uint32_t        type;
-    elf32_offset_t  offset;
-    elf32_addr_t    vaddr;
-    elf32_addr_t    paddr;
-    uint32_t        filesz;
-    uint32_t        memsz;
-    uint32_t        flags;
-    uint32_t        align;
-};
+typedef struct {
+    uint32_t    type;
+    uint32_t    offset;
+    uint32_t    vaddr;
+    uint32_t    paddr;
+    uint32_t    filesz;
+    uint32_t    memsz;
+    uint32_t    flags;
+    uint32_t    align;
+} memberof(ELFObject, phdr32);
 
-struct elf32_shdr {
-    uint32_t        name;
-    uint32_t        type;
-    uint32_t        flags;
-    elf32_addr_t    addr;
-    elf32_offset_t  offset;
-    uint32_t        size;
-    uint32_t        link;
-    uint32_t        info;
-    uint32_t        addralign;
-    uint32_t        entsize;
-};
+typedef struct {
+    uint32_t    name;
+    uint32_t    type;
+    uint32_t    flags;
+    uint32_t    addr;
+    uint32_t    offset;
+    uint32_t    size;
+    uint32_t    link;
+    uint32_t    info;
+    uint32_t    addralign;
+    uint32_t    entsize;
+} memberof(ELFObject, shdr32);
 
-struct elf32_symbol {
-    uint32_t        name;
-    elf32_addr_t    value;
-    uint32_t        size;
-    uint8_t         info;
-    uint8_t         other;
-    uint8_t         shndx;
-};
+typedef struct {
+    uint32_t    name;
+    uint32_t    value;
+    uint32_t    size;
+    uint8_t     info;
+    uint8_t     other;
+    uint8_t     shndx;
+} memberof(ELFObject, symbol32);
 
-struct elf32_reloc {
-    elf32_addr_t    offset;
-    uint32_t        info;
+typedef struct {
+    uint32_t    offset;
+    uint32_t    info;
+} memberof(ELFObject, reloc32);
+
+typedef struct {
+    file_t* file;
+    memberof(ELFObject, header32)* header;
+    memberof(ELFObject, phdr32)* pheader;
+    memberof(ELFObject, shdr32)* sheader;
+    void* shstrtab;
+    size32_t shstrtabsz;
+} ELFObject;
+
+int memberof(ELFObject, construct)(ELFObject* self, file_t* file);
+int memberof(ELFObject, destruct)(ELFObject* self);
+int memberof(ELFObject, get_section_data)(ELFObject* self, const char* name, void* buf, size32_t len);
+int memberof(ELFObject, get_section_header)(ELFObject* self, const char* name, memberof(ELFObject, shdr32)* shdr_buf);
+
+static const struct {
+    int (*construct)(ELFObject* self, file_t* file);
+    int (*destruct)(ELFObject* self);
+    int (*get_section_data)(ELFObject* self, const char* name, void* buf, size32_t len);
+    int (*get_section_header)(ELFObject* self, const char* name, memberof(ELFObject, shdr32)* shdr_buf);
+} ftableof(ELFObject) = {
+    .construct = memberof(ELFObject, construct),
+    .destruct = memberof(ELFObject, destruct),
+    .get_section_data = memberof(ELFObject, get_section_data),
+    .get_section_header = memberof(ELFObject, get_section_header),
 };
 
 #endif  // _EHBC_ELF_H__

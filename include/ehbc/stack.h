@@ -2,12 +2,9 @@
 #define _EHBC_STACK_H__
 
 #include <ehbc/units.h>
-#include <ehbc/memory.h>
+#include <ehbc/section.h>
 
-/* Base address of initial CPU stack */
-#define STACK_BOTTOM        HEAP_TOP;
-
-extern const int __stack_top;
+extern int __stack_top;
 
 /* Top address of initial CPU stack */
 #define STACK_TOP           (&__stack_top)
@@ -15,7 +12,7 @@ extern const int __stack_top;
 static inline ssize32_t get_free_stack_space(void)
 {
     int v;
-    return (ssize32_t)(&v) - (ssize32_t)STACK_BOTTOM;
+    return (ssize32_t)(&v) - (ssize32_t)BSS_END;
 }
 
 static inline ssize32_t get_used_stack_space(void)

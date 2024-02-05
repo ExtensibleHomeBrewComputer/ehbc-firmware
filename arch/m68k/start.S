@@ -3,10 +3,11 @@
 #include <ehbc/section.h>
 #include <ehbc/stack.h>
 
+.text
+
 .global         main
 .global          _start
 
-.text
 /* firmware entry point */
 _start:
     /* copy .data section */

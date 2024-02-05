@@ -2,7 +2,7 @@
 #include <ehbc/hw/device.h>
 #include <ehbc/hw/bus.h>
 
-int methodof(ESCC, construct)(void* _self, hwreg8_t* cmd_register, hwreg8_t* data_register)
+int memberof(ESCC, construct)(void* _self, hwreg8_t* cmd_register, hwreg8_t* data_register)
 {
     static const uint8_t init_sequence_8n1[] = {
         0x04, 0xC4,     /* no parity, 1 stop bit, clock x64 */
@@ -21,7 +21,7 @@ int methodof(ESCC, construct)(void* _self, hwreg8_t* cmd_register, hwreg8_t* dat
     return 0;
 }
 
-ssize32_t methodof(ESCC, read)(void* _self, void* buf, size32_t count, size32_t offset)
+ssize32_t memberof(ESCC, read)(void* _self, void* buf, size32_t count, size32_t offset)
 {
     ESCC* self = _self;
     if ((ssize32_t)count < 0 || offset != 0) {
@@ -36,7 +36,7 @@ ssize32_t methodof(ESCC, read)(void* _self, void* buf, size32_t count, size32_t 
     return bytes_read;
 }
 
-ssize32_t methodof(ESCC, write)(void* _self, const void* buf, size32_t count, size32_t offset)
+ssize32_t memberof(ESCC, write)(void* _self, const void* buf, size32_t count, size32_t offset)
 {
     ESCC* self = _self;
     if ((ssize32_t)count < 0 || offset != 0) {

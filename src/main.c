@@ -18,6 +18,7 @@
 #include <ehbc/hw/ata.h>
 #include <ehbc/fs/fat.h>
 #include <ehbc/string.h>
+#include <ehbc/elf.h>
 
 #define ESCC_CHA_CMD        ((uint8_t*)0xFF001201)
 #define ESCC_CHA_DATA       ((uint8_t*)0xFF001203)
@@ -28,52 +29,76 @@
 #define ATA0_MASTER_BASE    ((uint16_t*)0xFF001D00)
 #define ATA0_SLAVE_BASE     ((uint16_t*)0xFF001D00)
 
+void hexdump(const void* p, size_t len);
 
 void main(void)
 {
     ESCC escc;
-    methodof(ESCC, construct)(&escc, ESCC_CHA_CMD, ESCC_CHA_DATA);
+    memberof(ESCC, construct)(&escc, ESCC_CHA_CMD, ESCC_CHA_DATA);
 
     set_io_device(&escc, &ftableof(ESCC).impl(DeviceTrait));
-    printf("\r\n");
 
-    printf("%ld bytes used, %ld bytes free\r\n", get_used_heap_space() + get_used_stack_space(), get_free_stack_space());
+    printf("%ld bytes used, %ld bytes free\r\n", get_used_stack_space(), get_free_stack_space());
 
     ATADrive ata;
-    methodof(ATADrive, construct)(&ata, ATA0_MASTER_BASE);
-
-    printf("%ld bytes used, %ld bytes free\r\n", get_used_heap_space() + get_used_stack_space(), get_free_stack_space());
-
-    printf("debug: Initialized debugging environment\r\n");
-
-    printf("sizeof(char) = %lu\r\n", sizeof(char));
-    printf("sizeof(short) = %lu\r\n", sizeof(short));
-    printf("sizeof(int) = %lu\r\n", sizeof(int));
-    printf("sizeof(long) = %lu\r\n", sizeof(long));
-    printf("sizeof(long long) = %lu\r\n", sizeof(long long));
-    printf("sizeof(float) = %lu\r\n", sizeof(float));
-    printf("sizeof(double) = %lu\r\n", sizeof(double));
-    printf("sizeof(long double) = %lu\r\n", sizeof(long double));
-    printf("sizeof(intmax_t) = %lu\r\n", sizeof(intmax_t));
-    printf("sizeof(void*) = %lu\r\n", sizeof(void*));
+    memberof(ATADrive, construct)(&ata, ATA0_MASTER_BASE);
 
     volatile long double fvar = 1.0f;
     fvar += 2.0f;
 
-    printf("%ld bytes used, %ld bytes free\r\n", get_used_heap_space() + get_used_stack_space(), get_free_stack_space());
-
     FATFileSystem fatfs;
-    methodof(FATFileSystem, construct)(&fatfs, &ata, &ftableof(ATADrive).impl(DeviceTrait), 0);
+    memberof(FATFileSystem, construct)(&fatfs, &ata, &ftableof(ATADrive).impl(DeviceTrait), 0);
 
-    printf("%ld bytes used, %ld bytes free\r\n", get_used_heap_space() + get_used_stack_space(), get_free_stack_space());
-
-    printf("%s\r\n", methodof(FATFileSystem, get_filesystem_name)(&fatfs));
+    printf("%s\r\n", memberof(FATFileSystem, get_filesystem_name)(&fatfs));
 
     dir_t rootdir;
-    methodof(FATFileSystem, open_directory)(&fatfs, NULL, &rootdir, FS_ROOT_DIR);
+    memberof(FATFileSystem, open_directory)(&fatfs, NULL, &rootdir, FS_ROOT_DIR);
 
     dir_t subdir1;
-    methodof(FATFileSystem, open_directory)(&fatfs, &rootdir, &subdir1, "ASDF");
+    memberof(FATFileSystem, open_directory)(&fatfs, &rootdir, &subdir1, "ASDF");
+
+    const fileinfo_t* fip = NULL;
+    do {
+        memberof(FATFileSystem, list_directory)(&fatfs, &rootdir, &fip);
+        if (fip != NULL) {
+            printf("::/%s\r\n", fip->name);
+        }
+    } while (fip != NULL);
+
+    fip = NULL;
+    do {
+        memberof(FATFileSystem, list_directory)(&fatfs, &subdir1, &fip);
+        if (fip != NULL) {
+            printf("::/ASDF/%s\r\n", fip->name);
+        }
+    } while (fip != NULL);
+
+    file_t file1;
+    memberof(FATFileSystem, open_file)(&fatfs, &subdir1, &file1, "filename.ext", "r");
+
+    char file_buf[16];
+    memberof(FATFileSystem, read_file)(&fatfs, &file1, file_buf, 16, 1);
+    printf("file_buf: %s\r\n", file_buf);
+
+    file_t elffile;
+    memberof(FATFileSystem, open_file)(&fatfs, &rootdir, &elffile, "elffile.elf", "r");
+
+    ELFObject elfobj;
+    memberof(ELFObject, construct)(&elfobj, &elffile);
+
+    memberof(ELFObject, shdr32) vector_header;
+    memberof(ELFObject, get_section_header)(&elfobj, ".vector", &vector_header);
+    hexdump(&vector_header, sizeof(vector_header));
+
+    uint8_t elf_vector[1024];
+    memberof(ELFObject, get_section_data)(&elfobj, ".text", elf_vector, sizeof(elf_vector));
+    hexdump(elf_vector, sizeof(elf_vector));
+
+    memberof(ELFObject, destruct)(&elfobj);
+    memberof(FATFileSystem, close_file)(&fatfs, &elffile);
+    memberof(FATFileSystem, close_file)(&fatfs, &file1);
+    memberof(FATFileSystem, close_directory)(&fatfs, &subdir1);
+    memberof(FATFileSystem, close_directory)(&fatfs, &rootdir);
 
     /*
     printf("i8042 status: %02x\r\n", *I8042_CMD);
@@ -104,45 +129,21 @@ void main(void)
             printf("i8042 read: %02x\r\n", *I8042_DATA);
         }
         */
-        int read_count = methodof(ESCC, read)(&escc, escc_buffer, sizeof(escc_buffer), 0);
+        int read_count = memberof(ESCC, read)(&escc, escc_buffer, sizeof(escc_buffer), 0);
         for (int i = 0; i < read_count; i++) {
             switch (escc_buffer[i]) {
                 case '\r':
                 case '\n':
-                    printf("\r\n");
-                    if (strncmp(input_buffer, "dir", 4) == 0) {
-                        const fileinfo_t* fip = NULL;
-                        do {
-                            methodof(FATFileSystem, list_directory)(&fatfs, &rootdir, &fip);
-                            if (fip != NULL) {
-                                printf("%s\r\n", fip->name);
-                            }
-                        } while (fip != NULL);
-                    } else if (strncmp(input_buffer, "dir2", 5) == 0) {
-                        const fileinfo_t* fip = NULL;
-                        do {
-                            methodof(FATFileSystem, list_directory)(&fatfs, &subdir1, &fip);
-                            if (fip != NULL) {
-                                printf("%s\r\n", fip->name);
-                            }
-                        } while (fip != NULL);
-                    } else if (strncmp(input_buffer, "find ", 5) == 0) {
-                        const fileinfo_t* fip = NULL;
-                        methodof(FATFileSystem, match_name)(&fatfs, &rootdir, input_buffer + 5, &fip);
-                        if (fip != NULL) {
-                            printf("File found: %s\r\n", fip->name);
-                        } else {
-                            printf("File not found: %s\r\n", input_buffer + 5);
-                        }
-                    }
+                    printf("\r\nbuf> %s\r\n", input_buffer);
                     ibuf_cur = 0;
+                    input_buffer[ibuf_cur] = 0;
                     break;
                 case '\x7F':
                     if (ibuf_cur > 0) {
                         ibuf_cur--;
                         input_buffer[ibuf_cur] = 0;
-                        const char bksp_seq[] = "\b\0\b";
-                        methodof(ESCC, write)(&escc, bksp_seq, 3, 0);
+                        const char bksp_seq[] = "\033[1D\033[K";
+                        memberof(ESCC, write)(&escc, bksp_seq, 7, 0);
                     }
                     break;
                 default:
@@ -153,6 +154,4 @@ void main(void)
             }
         }
     }
-    methodof(FATFileSystem, close_directory)(&fatfs, &subdir1);
-    methodof(FATFileSystem, close_directory)(&fatfs, &rootdir);
 }

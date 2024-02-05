@@ -57,7 +57,7 @@ static inline uint16_t read_data(ATADrive* self)
     return data;
 }
 
-int methodof(ATADrive, construct)(void* _self, hwreg16_t* reg_base)
+int memberof(ATADrive, construct)(void* _self, hwreg16_t* reg_base)
 {
     ATADrive* self = _self;
     self->reg_base = reg_base;
@@ -82,13 +82,13 @@ int methodof(ATADrive, construct)(void* _self, hwreg16_t* reg_base)
     return check_error(self);
 }
 
-const struct ata_drive_ident* methodof(ATADrive, get_identifier_struct)(void* _self)
+const struct ata_drive_ident* memberof(ATADrive, get_identifier_struct)(void* _self)
 {
     ATADrive* self = _self;
     return &self->drive_ident;
 }
 
-uint8_t methodof(ATADrive, read_sectors_pio)(void* _self, void* buf, uint32_t lba, uint8_t count)
+uint8_t memberof(ATADrive, read_sectors_pio)(void* _self, void* buf, uint32_t lba, uint8_t count)
 {
     ATADrive* self = _self;
     uint8_t lba_frag0 = lba & 0xFF;
@@ -121,7 +121,7 @@ uint8_t methodof(ATADrive, read_sectors_pio)(void* _self, void* buf, uint32_t lb
     return check_error(self);
 }
 
-uint8_t methodof(ATADrive, write_sectors_pio)(void* _self, const void* buf, uint32_t lba, uint8_t count)
+uint8_t memberof(ATADrive, write_sectors_pio)(void* _self, const void* buf, uint32_t lba, uint8_t count)
 {
     ATADrive* self = _self;
     uint8_t lba_frag0 = lba & 0xFF;
@@ -149,12 +149,12 @@ uint8_t methodof(ATADrive, write_sectors_pio)(void* _self, const void* buf, uint
     return check_error(self);
 }
 
-ssize32_t methodof(ATADrive, read)(void* self, void* buf, size32_t count, size32_t offset)
+ssize32_t memberof(ATADrive, read)(void* self, void* buf, size32_t count, size32_t offset)
 {
-    return methodof(ATADrive, read_sectors_pio)(self, buf, offset >> 9, count >> 9);
+    return memberof(ATADrive, read_sectors_pio)(self, buf, offset >> 9, count >> 9);
 }
 
-ssize32_t methodof(ATADrive, write)(void* self, const void* buf, size32_t count, size32_t offset)
+ssize32_t memberof(ATADrive, write)(void* self, const void* buf, size32_t count, size32_t offset)
 {
-    return methodof(ATADrive, write_sectors_pio)(self, buf, offset >> 9, count >> 9);
+    return memberof(ATADrive, write_sectors_pio)(self, buf, offset >> 9, count >> 9);
 }

@@ -3,21 +3,21 @@
 
 #include <ehbc/types.h>
 
-extern const int __vector_start;
-extern const int __vector_end;
-extern const int __text_start;
-extern const int __text_end;
-extern const int __rodata_start;
-extern const int __rodata_end;
-extern const int __ctors_start;
-extern const int __ctors_end;
-extern const int __dtors_start;
-extern const int __dtors_end;
-extern const int __data_init;
-extern const int __data_start;
-extern const int __data_end;
-extern const int __bss_start;
-extern const int __bss_end;
+extern int __vector_start;
+extern int __vector_end;
+extern int __text_start;
+extern int __text_end;
+extern int __rodata_start;
+extern int __rodata_end;
+extern int __ctors_start;
+extern int __ctors_end;
+extern int __dtors_start;
+extern int __dtors_end;
+extern int __data_init;
+extern int __data_start;
+extern int __data_end;
+extern int __bss_start;
+extern int __bss_end;
 
 #define VECTOR_START    (&__vector_start)
 #define VECTOR_END      (&__vector_end)

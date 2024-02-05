@@ -4,8 +4,9 @@
 #include <ehbc/types.h>
 #include <ehbc/memory.h>
 
-#define impl(trait) __##trait##_impl
-#define methodof(struct, method) __##struct##_##method
-#define ftableof(struct) __##struct##_ftable
+#define impl(trait)                 T__##trait##_impl
+
+#define memberof(struct, member)    S__##struct##_##member
+#define ftableof(struct)            S__##struct##_ftable
 
 #endif  // _EHBC_STRUCT_H__
