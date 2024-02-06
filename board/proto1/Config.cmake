@@ -1,0 +1,5 @@
+add_config_dependency("arch/m68k")
+add_config_dependency("hw/escc")
+add_config_dependency("hw/ata")
+add_source("proto1.c")
+set_ldscript("ldscript.x")

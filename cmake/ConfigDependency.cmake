@@ -1,5 +1,6 @@
 set(CONFIG_DEPENDENCIES "")
 set(CONFIGURED_SOURCES "")
+set(CONFIGURED_LDSCRIPT "")
 
 macro(add_config_dependency dep_dir)
     if(NOT "${dep_dir}" IN_LIST CONFIG_DEPENDENCIES)
@@ -14,4 +15,6 @@ macro(add_source source_file)
     endif()
 endmacro()
 
-
+macro(set_ldscript ldscript)
+    set(CONFIGURED_LDSCRIPT "${CMAKE_CURRENT_LIST_DIR}/${ldscript}")
+endmacro()

@@ -107,11 +107,13 @@ uint8_t memberof(ATADrive, read_sectors_pio)(void* _self, void* buf, uint32_t lb
 
     send_command(self, 0x20);
 
-    wait_drq(self);
+    for (int j = 0; j < count; j++) {
+        wait_drq(self);
 
-    for (int i = 0; i < 256 * count; i++) {
-        uint16_t data = read_data(self);
-        ((uint16_t*)buf)[i] = data;
+        for (int i = 0; i < 256; i++) {
+            uint16_t data = read_data(self);
+            ((uint16_t*)buf)[i + j * 256] = data;
+        }
     }
 
     while (check_drq(self)) {

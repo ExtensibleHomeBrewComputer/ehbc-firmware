@@ -208,10 +208,10 @@ int isxdigit(int c)
 
 int tolower(int c)
 {
-    return isupper(c) ? (c + 0x20) : c;
+    return (c < 0x80 && isupper(c)) ? (c + 0x20) : c;
 }
 
 int toupper(int c)
 {
-    return islower(c) ? (c - 0x20) : c;
+    return (c < 0x80 && islower(c)) ? (c - 0x20) : c;
 }

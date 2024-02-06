@@ -188,16 +188,4 @@ int memberof(ELFObject, destruct)(ELFObject* self);
 int memberof(ELFObject, get_section_data)(ELFObject* self, const char* name, void* buf, size32_t len);
 int memberof(ELFObject, get_section_header)(ELFObject* self, const char* name, memberof(ELFObject, shdr32)* shdr_buf);
 
-static const struct {
-    int (*construct)(ELFObject* self, file_t* file);
-    int (*destruct)(ELFObject* self);
-    int (*get_section_data)(ELFObject* self, const char* name, void* buf, size32_t len);
-    int (*get_section_header)(ELFObject* self, const char* name, memberof(ELFObject, shdr32)* shdr_buf);
-} ftableof(ELFObject) = {
-    .construct = memberof(ELFObject, construct),
-    .destruct = memberof(ELFObject, destruct),
-    .get_section_data = memberof(ELFObject, get_section_data),
-    .get_section_header = memberof(ELFObject, get_section_header),
-};
-
 #endif  // _EHBC_ELF_H__

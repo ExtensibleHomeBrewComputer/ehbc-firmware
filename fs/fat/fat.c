@@ -19,17 +19,19 @@
 
 struct file_t_data {
     uint32_t head_cluster;
+    void* fat_entry_cache;
     union fat_dir_entry entry;
 };
 
 struct dir_t_data {
     uint32_t head_cluster;
+    void* fat_entry_cache;
+    union fat_dir_entry entry;
 };
 
 static int read_sector(FATFileSystem* self, uint32_t sector)
 {
     if (self->sector_buf_lba != sector || !self->sector_buf_valid) {
-        printf("READ: LBA%lu\r\n", sector);
         self->sector_buf_lba = sector;
         self->sector_buf_valid = 1;
         return self->bdev_trait->read(
@@ -58,7 +60,7 @@ static uint16_t get_next_cluster12(FATFileSystem* self, uint16_t current)
     if (current & 1) {  // odd-numbered cluster
         return ((fat[cluster_pair_idx + 1] & 0xF0) >> 4) | (fat[cluster_pair_idx + 2] << 4);
     } else {  // even-numbered cluster
-        return fat[cluster_pair_idx] + ((fat[cluster_pair_idx + 1] & 0x0F) << 8);
+        return fat[cluster_pair_idx] | ((fat[cluster_pair_idx + 1] & 0x0F) << 8);
     }
 }
 
@@ -113,7 +115,6 @@ static uint32_t sector_to_cluster32(FATFileSystem* self, uint32_t sector)
 
 static uint16_t cluster_to_sector12(FATFileSystem* self, uint16_t cluster)
 {
-    printf("cluster %u -> lba %lu\r\n", cluster, ((cluster - 2) * self->sectors_per_cluster) + self->data_area_begin + self->root_sector_count);
     return ((cluster - 2) * self->sectors_per_cluster) + self->data_area_begin + self->root_sector_count;
 }
 
@@ -203,20 +204,20 @@ static int read_next_sector32(FATFileSystem* self, uint32_t current)
     return read_sector(self, current);
 }
 
-static size32_t get_lfn_filename(const union fat_dir_entry* entry, char buf[static FAT_LFN_BUFLEN])
+static size32_t get_lfn_filename(const union fat_dir_entry* entry, UCS2 buf[static FAT_LFN_BUFLEN])
 {
     /* support UCS-2 Unicode */
     if (is_lfnentry(entry)) {
         buf += ((entry->lfn.sequence_index & 0x1F) - 1) * 13;
         size32_t char_count = 0;
         for (int i = 0; i < 5; i++) {
-            buf[char_count++] = entry->lfn.name_fragment1[i] >> 8;
+            buf[char_count++] = byteswap16(entry->lfn.name_fragment1[i]);
         }
         for (int i = 0; i < 6; i++) {
-            buf[char_count++] = entry->lfn.name_fragment2[i] >> 8;
+            buf[char_count++] = byteswap16(entry->lfn.name_fragment2[i]);
         }
         for (int i = 0; i < 2; i++) {
-            buf[char_count++] = entry->lfn.name_fragment3[i] >> 8;
+            buf[char_count++] = byteswap16(entry->lfn.name_fragment3[i]);
         }
         if (entry->lfn.sequence_index & 0x40) {
             buf[char_count] = '\0';
@@ -227,7 +228,7 @@ static size32_t get_lfn_filename(const union fat_dir_entry* entry, char buf[stat
     }
 }
 
-static size32_t get_sfn_filename(const union fat_dir_entry* entry, char buf[static FAT_SFN_BUFLEN])
+static size32_t get_sfn_filename(const union fat_dir_entry* entry, UTF8 buf[static FAT_SFN_BUFLEN])
 {
     if (!is_lfnentry(entry)) {
         size32_t char_count = 0;
@@ -320,7 +321,7 @@ int memberof(FATFileSystem, construct)(void* _self, void* bdev, const DeviceTrai
 
     // Read FAT
     self->fat = mem_alloc(self->fat_size * self->bytes_per_sector);
-    read_fat(self, self->fat, self->reserved_sector_count, 1);  // Reads only 1 sector; fix it later.
+    read_fat(self, self->fat, self->reserved_sector_count, 2);  // Reads only 2 sector; fix it later.
 
     self->initialized = 1;
 
@@ -364,24 +365,24 @@ const char* memberof(FATFileSystem, get_filesystem_name)(void* _self)
     return fat_name[self->fat_type];
 }
 
-int memberof(FATFileSystem, create_directory)(void* _self, const char* path)
+int memberof(FATFileSystem, create_directory)(void* _self, dir_t* dir, const UTF8* name)
 {
     return -1;
 }
 
-int memberof(FATFileSystem, remove_directory)(void* _self, const char* path)
+int memberof(FATFileSystem, remove_directory)(void* _self, dir_t* dir, const UTF8* name)
 {
     return -1;
 }
 
-int memberof(FATFileSystem, open_directory)(void* _self, dir_t* path, dir_t* dir, const char* name)
+int memberof(FATFileSystem, open_directory)(void* _self, dir_t* path, dir_t* dir, const UTF8* name)
 {
     FATFileSystem* self = _self;
 
     if (path == NULL) {
-        if (strncmp(name, FS_ROOT_DIR, 3) == 0) {
+        if (memberof(Encoding, strncmp)(&impl(UTF8, EncodingTrait), name, FS_ROOT_DIR, 3) == 0) {
             dir->fs = self;
-            dir->fstrait = &ftableof(FATFileSystem).impl(FileSystemTrait);
+            dir->fstrait = &impl(FATFileSystem, FileSystemTrait);
             dir->cursor = 0;
             dir->data = mem_alloc(sizeof(struct dir_t_data));
 
@@ -398,7 +399,7 @@ int memberof(FATFileSystem, open_directory)(void* _self, dir_t* path, dir_t* dir
         memberof(FATFileSystem, match_name)(self, path, name, &fip);
         if (fip != NULL) {
             dir->fs = self;
-            dir->fstrait = &ftableof(FATFileSystem).impl(FileSystemTrait);
+            dir->fstrait = &impl(FATFileSystem, FileSystemTrait);
             dir->cursor = 0;
             dir->data = mem_alloc(sizeof(struct dir_t_data));
 
@@ -444,6 +445,8 @@ int memberof(FATFileSystem, list_directory)(void* _self, dir_t* dir, const filei
 
     const uint8_t entries_per_sector = self->bytes_per_sector / sizeof(union fat_dir_entry);
 
+    UCS2 lfn_buf[FAT_LFN_BUFLEN];
+
     while (1) {
         current_sector_seq = dir->cursor / entries_per_sector;
         switch (self->fat_type) {
@@ -475,11 +478,12 @@ int memberof(FATFileSystem, list_directory)(void* _self, dir_t* dir, const filei
                 *finfo = NULL;
                 return 0;
             } else if (is_lfnentry(&entries[entry_cursor])) {
-                get_lfn_filename(&entries[entry_cursor], self->last_entry_lfn);
+                get_lfn_filename(&entries[entry_cursor], lfn_buf);
                 is_lfn = 1;
             } else {
                 get_sfn_filename(&entries[entry_cursor], self->last_entry_sfn);
                 if (is_lfn) {
+                    memberof(Encoding, convert)(&impl(UTF8, EncodingTrait), self->last_entry_lfn, sizeof(self->last_entry_lfn), &impl(UCS2, EncodingTrait), lfn_buf, sizeof(lfn_buf));
                     self->last_entry_info.name = self->last_entry_lfn;
                 } else {
                     self->last_entry_info.name = self->last_entry_sfn;
@@ -508,26 +512,26 @@ int memberof(FATFileSystem, get_modified_time)(const fileinfo_t* finfo, timestam
     return -1;
 }
 
-int memberof(FATFileSystem, create_file)(void* _self, dir_t* path, const char* name)
+int memberof(FATFileSystem, create_file)(void* _self, dir_t* path, const UTF8* name)
 {
     return -1;
 }
 
-int memberof(FATFileSystem, remove_file)(void* _self, dir_t* path, const char* name)
+int memberof(FATFileSystem, remove_file)(void* _self, dir_t* path, const UTF8* name)
 {
     return -1;
 }
 
-int memberof(FATFileSystem, match_name)(void* _self, dir_t* path, const char* name, const fileinfo_t** finfo)
+int memberof(FATFileSystem, match_name)(void* _self, dir_t* path, const UTF8* name, const fileinfo_t** finfo)
 {
     FATFileSystem* self = _self;
     *finfo = NULL;
     do {
         memberof(FATFileSystem, list_directory)(_self, path, finfo);
         if (*finfo != NULL) {
-            if (strnicmp(name, self->last_entry_sfn, FAT_SFN_BUFLEN) == 0) {
+            if (memberof(Encoding, strnicmp)(&impl(UTF8, EncodingTrait), name, self->last_entry_sfn, FAT_SFN_BUFLEN) == 0) {
                 return 0;
-            } else if (strnicmp(name, self->last_entry_lfn, FAT_LFN_BUFLEN) == 0) {
+            } else if (memberof(Encoding, strnicmp)(&impl(UTF8, EncodingTrait), name, self->last_entry_lfn, FAT_LFN_BUFLEN) == 0) {
                 return 0;
             }
         }
@@ -536,7 +540,7 @@ int memberof(FATFileSystem, match_name)(void* _self, dir_t* path, const char* na
     return 0;
 }
 
-int memberof(FATFileSystem, open_file)(void* _self, dir_t* path, file_t* file, const char* name, const char* mode)
+int memberof(FATFileSystem, open_file)(void* _self, dir_t* path, file_t* file, const UTF8* name, const char* mode)
 {
     FATFileSystem* self = _self;
 
@@ -544,7 +548,7 @@ int memberof(FATFileSystem, open_file)(void* _self, dir_t* path, file_t* file, c
     memberof(FATFileSystem, match_name)(self, path, name, &fip);
     if (fip != NULL) {
         file->fs = self;
-        file->fstrait = &ftableof(FATFileSystem).impl(FileSystemTrait);
+        file->fstrait = &impl(FATFileSystem, FileSystemTrait);
         file->cursor = 0;
         file->data = mem_alloc(sizeof(struct file_t_data));
 
@@ -577,8 +581,6 @@ size32_t memberof(FATFileSystem, read_file)(void* _self, file_t* file, void* buf
     if (file->cursor < 0 || memberof(FATFileSystem, is_eof)(_self, file)) {
         return -1;
     }
-
-    printf("READFILE: offset=%lu, size=%lu, count=%lu\r\n", file->cursor, size, count);
 
     uint32_t current_sector_lba;
 
@@ -696,17 +698,17 @@ int memberof(FATFileSystem, is_eof)(void* self, file_t* file)
     return file->cursor >= entry->file.size;
 }
 
-int memberof(FATFileSystem, test_file)(void* _self, dir_t* dir, const char* name)
+int memberof(FATFileSystem, test_file)(void* _self, dir_t* dir, const UTF8* name)
 {
     return -1;
 }
 
-int memberof(FATFileSystem, move)(void* _self, dir_t* origdir, const char* origname, dir_t* tgtdir, const char* tgtname)
+int memberof(FATFileSystem, move)(void* _self, dir_t* origdir, const UTF8* origname, dir_t* tgtdir, const UTF8* tgtname)
 {
     return -1;
 }
 
-int memberof(FATFileSystem, copy)(void* _self, dir_t* origdir, const char* origname, dir_t* tgtdir, const char* tgtname)
+int memberof(FATFileSystem, copy)(void* _self, dir_t* origdir, const UTF8* origname, dir_t* tgtdir, const UTF8* tgtname)
 {
     return -1;
 }

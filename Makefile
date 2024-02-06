@@ -6,11 +6,6 @@ run: build/firmware.bin
 	$(QEMU) \
 		-M ehbc -cpu m68030 -m 128M -S -s \
 		-serial stdio -hda disk.img \
-		--trace "ide_bus_*" \
-		--trace "serial_*" \
-		--trace "pckbd_*" \
-		--trace "cpu_*" \
-		--trace "vga_*" \
 		-bios $<
 
 debug: build/firmware.elf

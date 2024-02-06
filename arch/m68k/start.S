@@ -5,7 +5,7 @@
 
 .text
 
-.global         main
+.global          main
 .global          _start
 
 /* firmware entry point */
@@ -25,10 +25,12 @@ _start:
 
     /* run constructors */
     movea.l     #__ctors_start,%a2
+    cmp.l       #0xFFFFFFFF,%a2@+
+    bne         .skip_ctors
 0:
-    cmpa.l      #__ctors_end,%a2
-    bge         .skip_ctors
-    movea.l     %a2@+,%a3
+    cmp.l       #0x00000000,%a2@+
+    beq         .skip_ctors
+    movea.l     %a2@,%a3
     jsr         %a3@
     bra         0b
 .skip_ctors:

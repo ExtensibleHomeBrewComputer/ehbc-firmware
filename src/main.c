@@ -19,6 +19,8 @@
 #include <ehbc/fs/fat.h>
 #include <ehbc/string.h>
 #include <ehbc/elf.h>
+#include <ehbc/stream.h>
+#include <ehbc/encoding/utf8.h>
 
 #define ESCC_CHA_CMD        ((uint8_t*)0xFF001201)
 #define ESCC_CHA_DATA       ((uint8_t*)0xFF001203)
@@ -36,7 +38,7 @@ void main(void)
     ESCC escc;
     memberof(ESCC, construct)(&escc, ESCC_CHA_CMD, ESCC_CHA_DATA);
 
-    set_io_device(&escc, &ftableof(ESCC).impl(DeviceTrait));
+    set_io_device(&escc, &impl(ESCC, DeviceTrait));
 
     printf("%ld bytes used, %ld bytes free\r\n", get_used_stack_space(), get_free_stack_space());
 
@@ -47,7 +49,7 @@ void main(void)
     fvar += 2.0f;
 
     FATFileSystem fatfs;
-    memberof(FATFileSystem, construct)(&fatfs, &ata, &ftableof(ATADrive).impl(DeviceTrait), 0);
+    memberof(FATFileSystem, construct)(&fatfs, &ata, &impl(ATADrive, DeviceTrait), 0);
 
     printf("%s\r\n", memberof(FATFileSystem, get_filesystem_name)(&fatfs));
 
@@ -55,7 +57,7 @@ void main(void)
     memberof(FATFileSystem, open_directory)(&fatfs, NULL, &rootdir, FS_ROOT_DIR);
 
     dir_t subdir1;
-    memberof(FATFileSystem, open_directory)(&fatfs, &rootdir, &subdir1, "ASDF");
+    memberof(FATFileSystem, open_directory)(&fatfs, &rootdir, &subdir1, utf8("ASDF"));
 
     const fileinfo_t* fip = NULL;
     do {
@@ -74,14 +76,14 @@ void main(void)
     } while (fip != NULL);
 
     file_t file1;
-    memberof(FATFileSystem, open_file)(&fatfs, &subdir1, &file1, "filename.ext", "r");
+    memberof(FATFileSystem, open_file)(&fatfs, &subdir1, &file1, utf8("filename.ext"), "r");
 
     char file_buf[16];
     memberof(FATFileSystem, read_file)(&fatfs, &file1, file_buf, 16, 1);
     printf("file_buf: %s\r\n", file_buf);
 
     file_t elffile;
-    memberof(FATFileSystem, open_file)(&fatfs, &rootdir, &elffile, "elffile.elf", "r");
+    int ret = memberof(FATFileSystem, open_file)(&fatfs, &rootdir, &elffile, utf8("유니코드.elf"), "r");
 
     ELFObject elfobj;
     memberof(ELFObject, construct)(&elfobj, &elffile);
@@ -90,7 +92,7 @@ void main(void)
     memberof(ELFObject, get_section_header)(&elfobj, ".vector", &vector_header);
     hexdump(&vector_header, sizeof(vector_header));
 
-    uint8_t elf_vector[1024];
+    uint8_t elf_vector[16];
     memberof(ELFObject, get_section_data)(&elfobj, ".text", elf_vector, sizeof(elf_vector));
     hexdump(elf_vector, sizeof(elf_vector));
 
@@ -99,6 +101,33 @@ void main(void)
     memberof(FATFileSystem, close_file)(&fatfs, &file1);
     memberof(FATFileSystem, close_directory)(&fatfs, &subdir1);
     memberof(FATFileSystem, close_directory)(&fatfs, &rootdir);
+
+    Stream stream;
+    memberof(Stream, construct)(&stream, sizeof(char), 4);
+
+    memberof(Stream, push_data)(&stream, "a");
+    memberof(Stream, push_data)(&stream, "b");
+    memberof(Stream, push_data)(&stream, "c");
+    memberof(Stream, push_data)(&stream, "d");
+    memberof(Stream, push_data)(&stream, "e");
+
+    char char_buf;
+    memberof(Stream, pop_data)(&stream, &char_buf);
+    printf("%c\r\n", char_buf);
+    memberof(Stream, pop_data)(&stream, &char_buf);
+    printf("%c\r\n", char_buf);
+    memberof(Stream, pop_data)(&stream, &char_buf);
+    printf("%c\r\n", char_buf);
+    memberof(Stream, pop_data)(&stream, &char_buf);
+    printf("%c\r\n", char_buf);
+
+    printf("%d\r\n", memberof(Stream, is_available)(&stream));
+
+    memberof(Stream, destruct)(&stream);
+
+    // Assuming that the size of the terminal is 80x25
+    // printf("\033[0;0H\033[=18h\033[2J\033[47;94m\033[K\033[34Gehbc-firmware\033[E");
+
 
     /*
     printf("i8042 status: %02x\r\n", *I8042_CMD);

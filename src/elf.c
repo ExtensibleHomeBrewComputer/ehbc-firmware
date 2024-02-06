@@ -1,8 +1,6 @@
 #include <ehbc/elf.h>
 #include <ehbc/string.h>
 
-extern void hexdump(const void* p, size_t len);
-
 static memberof(ELFObject, shdr32)* find_shdr(ELFObject* self, const char* name)
 {
     for (unsigned int i = 0; i < self->header->shnum; i++) {
@@ -58,9 +56,6 @@ int memberof(ELFObject, construct)(ELFObject* self, file_t* file)
     file->fstrait->seek_file(file->fs, file, self->header->shoff, FS_SEEK_SET);
     file->fstrait->read_file(file->fs, file, self->sheader, shsize, 1);
 
-    printf("ELF Header:\r\n");
-    hexdump(self->header, sizeof(*self->header));
-
     for (unsigned int i = 0; i < self->header->phnum; i++) {
         printf("PHDR %u: type=%08lX, vaddr=%08lX, paddr=%08lX, size=%08lX\r\n", i, self->pheader[i].type, self->pheader[i].vaddr, self->pheader[i].paddr, self->pheader[i].memsz);
     }
@@ -69,8 +64,6 @@ int memberof(ELFObject, construct)(ELFObject* self, file_t* file)
     self->shstrtabsz = self->sheader[self->header->shstrndx].size;
     file->fstrait->seek_file(file->fs, file, self->sheader[self->header->shstrndx].offset, FS_SEEK_SET);
     file->fstrait->read_file(file->fs, file, self->shstrtab, self->shstrtabsz, 1);
-
-    hexdump(self->shstrtab, self->shstrtabsz);
 
     return 0;
 }

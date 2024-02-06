@@ -3,6 +3,7 @@
 
 #include <ehbc/types.h>
 #include <ehbc/fs/fat.h>
+#include <ehbc/encoding/ucs2.h>
 
 #define FAT_SECTOR_SIZE         512
 
@@ -117,13 +118,13 @@ union fat_dir_entry {
 
     struct {
         uint8_t         sequence_index;
-        uint16_t        name_fragment1[5];
+        UCS2            name_fragment1[5];
         uint8_t         attribute;
         uint8_t         __reserved;
         uint8_t         checksum;
-        uint16_t        name_fragment2[6];
+        UCS2            name_fragment2[6];
         uint16_t        cluster_location;
-        uint16_t        name_fragment3[2];
+        UCS2            name_fragment3[2];
     } __attribute__((packed)) lfn;
 } __attribute__((packed));
 

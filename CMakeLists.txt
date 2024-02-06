@@ -10,6 +10,7 @@ find_file(CMAKE_TOOLCHAIN_FILE
 include(CheckSymbolExists)
 include(CheckLanguage)
 include(CMakeFindBinUtils)
+include(ExternalProject)
 
 include("${CMAKE_SOURCE_DIR}/cmake/ConfigDependency.cmake")
 
@@ -22,11 +23,9 @@ else()
     enable_language(ASM)
 endif()
 
-add_config_dependency("arch")
+add_config_dependency("board")
 add_config_dependency("src")
-add_config_dependency("hw")
 add_config_dependency("fs")
-add_config_dependency("elf")
 
 add_executable(firmware.elf ${CONFIGURED_SOURCES})
 add_custom_target(firmware.bin ALL
@@ -49,12 +48,15 @@ target_compile_options(firmware.elf PUBLIC
         -Wno-unused-function
         -Wno-unused-variable
         -Wno-unused-but-set-variable
+        -ffreestanding -nostdlib
         -pedantic
         -pedantic-errors>)
-target_link_options(firmware.elf PUBLIC -T "${CMAKE_SOURCE_DIR}/ldscripts/firmware.x")
+
 target_include_directories(firmware.elf PUBLIC "${CMAKE_SOURCE_DIR}/include")
 target_include_directories(firmware.elf PRIVATE "${CMAKE_SOURCE_DIR}/")
-set_target_properties(firmware.elf PROPERTIES LINK_DEPENDS "${CMAKE_SOURCE_DIR}/ldscripts/firmware.x")
+
+target_link_options(firmware.elf PUBLIC -T "${CONFIGURED_LDSCRIPT}")
+set_target_properties(firmware.elf PROPERTIES LINK_DEPENDS "${CONFIGURED_LDSCRIPT}")
 
 message(STATUS "Configured Sources:")
 foreach(SOURCE IN LISTS CONFIGURED_SOURCES)
